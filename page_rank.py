@@ -1,3 +1,6 @@
+import numpy as np
+
+
 def read_txt_data(filename):
     """
     @param filename - str
@@ -8,14 +11,11 @@ def read_txt_data(filename):
     with open(filename) as graph_file:
         for line in graph_file.readlines():
             line_list = line.strip().split()
-            print("line lst: ", line_list)
             if len(line_list) == 1:
                 graph[line_list[0]] = []
             else:
                 x = line_list[0]
                 y = line_list[1:]
-                print("x : ", x)
-                print("y : ", y)
                 if x in graph:
                     graph[x].append(y)
                 else:
@@ -23,6 +23,23 @@ def read_txt_data(filename):
 
         return graph
 
-my_graph = read_txt_data("data_s.txt")
-for key in my_graph.keys():
-    print("vertix: {}, links to: {}".format(key, my_graph[key]))
+
+def get_probability_matrix(graph, weight_of_random_choice):
+    vertices_amount = len(graph.keys())
+    probability_matrix = [[0] * vertices_amount] * vertices_amount
+
+    for i, i_vertix_id in enumerate(graph.keys()):
+        for j, j_vertix_id in enumerate(graph.keys()):
+            # if node has outgoing links
+            if graph[i_vertix_id] != []:
+                probability_matrix[i][j] = 1 / len(graph[i_vertix_id])
+            else:
+                probability_matrix[i][j] = 1 / vertices_amount
+
+    probability_matrix = np.matrix(probability_matrix)
+    probability_matrix = probability_matrix * weight_of_random_choice +\
+                         (1 - weight_of_random_choice) *\
+                         np.matrix([[1 / vertices_amount] *
+                                    vertices_amount] * vertices_amount)
+
+    return probability_matrix
