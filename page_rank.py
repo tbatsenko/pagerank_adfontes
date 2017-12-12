@@ -1,4 +1,5 @@
 import numpy as np
+from copy import deepcopy as dp
 
 
 def get_graph_from_txt_data(filename):
@@ -94,13 +95,50 @@ def pagerank(probability_matrix, previous_pr):
     return current_pr
 
 
-def main():
+def adaptive_pagerank(probability_matrix, previous_pr):
+    transition_matrix = probability_matrix.transpose()
+    # Set up accuracy
+    epsilon = 10 ** -5
+    # Make delta greater than epsilon for first iteration
+    delta = epsilon + 1
+    n = transition_matrix.shape[0]
+    final_pr = [0 for i in range(n)]
+
+    while delta > epsilon:
+        current_pr = transition_matrix.dot(previous_pr)
+        w = np.linalg.norm(previous_pr, ord=1) - np.linalg.norm(current_pr, ord=1)
+        current_pr = current_pr + w * (1 / len(previous_pr))
+
+        converged_pages = []
+        for i in range(transition_matrix.shape[0]):
+            if final_pr[i] == 0 and abs(current_pr[i] - previous_pr[i]) / previous_pr[i] < epsilon:
+                final_pr[i] = dp(current_pr[i].tolist()[0][0])
+                converged_pages.append(i)
+
+        np.delete(transition_matrix, converged_pages, axis=1)
+
+        delta = np.linalg.norm(current_pr - previous_pr, ord=1)
+        previous_pr = current_pr
+
+    # Fix structure of final_pr
+    for i in range(len(final_pr)):
+        if final_pr[i] == 0:
+           final_pr[i] = dp(current_pr[i].tolist()[0][0])
+
+    return final_pr
+
+
+def launch():
+    small_sample = 'data/sample-small.txt'
+    large_sample = 'data/sample-large.txt'
+    chosen_sample = large_sample
     weight_of_random_walk = 0.15
-    probability_matrix = get_probability_matrix(get_graph_from_txt_data('data/sample-small.txt'), weight_of_random_walk)
+    probability_matrix = get_probability_matrix(get_graph_from_txt_data(chosen_sample), weight_of_random_walk)
     initial_pr = np.full((len(probability_matrix), 1), 1 / len(probability_matrix))
     probability_matrix = np.matrix(probability_matrix)
 
-    print(pagerank(probability_matrix, initial_pr))
-
-
-main()
+    result = adaptive_pagerank(probability_matrix, initial_pr)
+    result.sort()
+    print(len(result))
+    print(sum(result))
+    print(result)
