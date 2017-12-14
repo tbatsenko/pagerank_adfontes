@@ -92,37 +92,48 @@ def pagerank(probability_matrix, previous_pr):
         delta = np.linalg.norm(current_pr - previous_pr, ord=1)
         previous_pr = current_pr
 
-    return current_pr
+    return previous_pr
 
 
-def adaptive_pagerank(probability_matrix, previous_pr):
+def adaptive_pagerank(probability_matrix, initial_pr):
     transition_matrix = probability_matrix.transpose()
     initial_transition_matrix = deepcopy(transition_matrix)
     # Set up accuracy
     epsilon = 10 ** -3
     # Make delta greater than epsilon for first iteration
     delta = epsilon + 1
-    n = transition_matrix.shape[0]
-    final_pr = []
-    converged_pr = previous_pr
+    previous_pr = np.matrix(initial_pr)
+    previous_pr_conv = np.matrix(np.zeros(len(previous_pr))).transpose()
 
     while delta > epsilon:
-        current_pr = transition_matrix.dot(previous_pr)
-        w = np.linalg.norm(previous_pr, ord=1) - np.linalg.norm(current_pr, ord=1)
-        current_pr = current_pr + w * (1 / len(previous_pr))
+        # Calculate pagerank for non-converged entities
+        current_pr_non_conv = transition_matrix.dot(previous_pr)
+        w = np.linalg.norm(previous_pr, ord=1) - np.linalg.norm(current_pr_non_conv, ord=1)
+        current_pr_non_conv = current_pr_non_conv + w * (1 / len(previous_pr))
 
-        for i in range(transition_matrix.shape[1]):
+        # Calculate pagerank for converged entities
+        current_pr_conv = previous_pr_conv
+        # Join converged and non-converged parts
+        current_pr = current_pr_non_conv + current_pr_conv
+
+        for i in range(transition_matrix.shape[0]):
             if abs(current_pr[i] - previous_pr[i]) / previous_pr[i] < epsilon:
                 transition_matrix[i] = np.zeros(transition_matrix.shape[1])
-                # pr_vector_to_save_indx[i] = 0
-            else:
-                converged_pr[i] = 0
+                current_pr_conv[i] = current_pr[i]
+                current_pr[i] = 0
 
-        delta = np.linalg.norm(current_pr - previous_pr, ord=1)
+        final_pr = initial_transition_matrix.dot(previous_pr)
+        w = np.linalg.norm(previous_pr, ord=1) - np.linalg.norm(final_pr, ord=1)
+        final_pr = final_pr + w * (1 / len(previous_pr))
+
+        print(delta)
+        delta = np.linalg.norm(final_pr - previous_pr, ord=1)
+
         previous_pr = current_pr
+        previous_pr_conv = current_pr_conv
 
-    # Fix structure of final_pr
-    return current_pr
+    return previous_pr
+
 
 def launch():
     small_sample = 'data/sample-small.txt'
@@ -138,3 +149,6 @@ def launch():
     print(len(result))
     print(sum(result))
     print(result)
+
+
+launch()
