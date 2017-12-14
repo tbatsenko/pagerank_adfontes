@@ -138,5 +138,3 @@ def launch():
     print(len(result))
     print(sum(result))
     print(result)
-
-launch()
