@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from copy import deepcopy
 
 
@@ -83,6 +84,13 @@ def get_probability_matrix(graph, weight_of_random_walk):
 
 
 def adaptive_pagerank(probability_matrix, initial_pr):
+    """
+    Compute adaptive PageRank
+
+    :param probability_matrix: n by n matrix A
+    :param initial_pr: n dimensional column vector, where all elements are 1/n
+    :return: n dimensional column vector with PR values
+    """
     transition_matrix = probability_matrix
     initial_transition_matrix = deepcopy(transition_matrix)
     # Set up accuracy
@@ -101,6 +109,7 @@ def adaptive_pagerank(probability_matrix, initial_pr):
         # Join converged and non-converged parts
         current_pr = current_pr_non_conv + current_pr_conv
 
+        # Detect converged pages
         for i in range(transition_matrix.shape[0]):
             if previous_pr[i] != 0 and abs(current_pr[i] - previous_pr[i]) / previous_pr[i] < epsilon:
                 transition_matrix[i] = np.zeros(transition_matrix.shape[1])
@@ -118,6 +127,7 @@ def adaptive_pagerank(probability_matrix, initial_pr):
 
 
 def launch():
+    # Choose data sample
     super_small_sample = 'data/sample-super-small.txt'
     small_sample = 'data/sample-small.txt'
     large_sample = 'data/sample-large.txt'
@@ -126,12 +136,21 @@ def launch():
     probability_matrix = get_probability_matrix(get_graph_from_txt_data(chosen_sample), weight_of_random_walk)
     initial_pr = np.matrix([1 / probability_matrix.shape[0] for i in range(probability_matrix.shape[0])]).transpose()
 
+    # Calc adaptive pagerank
     result = adaptive_pagerank(probability_matrix, initial_pr).tolist()
+
+    # Print results to console
     flat_result = [item for sublist in result for item in sublist]
     flat_result.sort()
     print(flat_result)
-    print(len(flat_result))
-    print(sum(flat_result))
+
+    # Show results using matplotlib
+    # Multiply results for better visualisation
+    # flat_result = list(map(lambda x: x * 999, flat_result))
+    area = list(map(lambda x: x * 30000, flat_result))
+    colors = np.random.rand(len(flat_result))
+    plt.scatter(flat_result, [1 for i in range(len(flat_result))], s=area, c=colors, alpha=0.5)
+    plt.show()
 
 
 launch()
