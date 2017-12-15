@@ -86,7 +86,7 @@ def adaptive_pagerank(probability_matrix, initial_pr):
     transition_matrix = probability_matrix
     initial_transition_matrix = deepcopy(transition_matrix)
     # Set up accuracy
-    epsilon = 10 ** -3
+    epsilon = 10 ** -2
     # Make delta greater than epsilon for first iteration
     delta = epsilon + 1
 
@@ -121,7 +121,7 @@ def launch():
     super_small_sample = 'data/sample-super-small.txt'
     small_sample = 'data/sample-small.txt'
     large_sample = 'data/sample-large.txt'
-    chosen_sample = small_sample
+    chosen_sample = large_sample
     weight_of_random_walk = 0.15
     probability_matrix = get_probability_matrix(get_graph_from_txt_data(chosen_sample), weight_of_random_walk)
     initial_pr = np.matrix([1 / probability_matrix.shape[0] for i in range(probability_matrix.shape[0])]).transpose()
