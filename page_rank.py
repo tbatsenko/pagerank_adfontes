@@ -58,97 +58,80 @@ def get_probability_matrix(graph, weight_of_random_walk):
     :return: np.matrix
     """
     vertices_amount = len(graph.keys())
-    probability_matrix = [[0 for i1 in range(vertices_amount)] for i2 in range(vertices_amount)]
+    P = [[0 for i1 in range(vertices_amount)] for i2 in range(vertices_amount)]
+    v = np.matrix([1 / vertices_amount for i in range(vertices_amount)])
+    e = np.matrix([1 for i in range(vertices_amount)])
+    d = np.matrix([0 if graph[id] else 1 for id in graph.keys()])
+    D = d.transpose().dot(v)
 
     for i, i_vertix_id in enumerate(graph.keys()):
         for j, j_vertix_id in enumerate(graph.keys()):
             # if node has outgoing links
             if graph[i_vertix_id] != []:
                 if j_vertix_id in graph[i_vertix_id]:
-                    probability_matrix[i][j] = 1 / len(graph[i_vertix_id])
+                    P[i][j] = 1 / len(graph[i_vertix_id])
                 else:
-                    probability_matrix[i][j] = 0
+                    P[i][j] = 0
 
-    # Adjust with weight_of_random_walk constant
-    probability_matrix = np.matrix(probability_matrix)
-    main_part = probability_matrix * (1 - weight_of_random_walk)
-    probability_vector = np.matrix([[1 / vertices_amount] * vertices_amount] * vertices_amount)
-    random_walk_part = weight_of_random_walk * probability_vector
-    probability_matrix = main_part + random_walk_part
-    return probability_matrix
+    P_prime = np.matrix(P) + D
+    E = e.transpose() * v
 
+    probability_matrix = (1 - weight_of_random_walk) * P_prime + \
+        weight_of_random_walk * E
 
-def pagerank(probability_matrix, previous_pr):
-    transition_matrix = probability_matrix.transpose()
-    epsilon = 10 ** -3
-    # Make delta greater than epsilon for first iteration
-    delta = epsilon + 1
-
-    while delta > epsilon:
-        current_pr = transition_matrix.dot(previous_pr)
-        w = np.linalg.norm(previous_pr, ord=1) - np.linalg.norm(current_pr, ord=1)
-        current_pr = current_pr + w * (1 / len(previous_pr))
-
-        delta = np.linalg.norm(current_pr - previous_pr, ord=1)
-        previous_pr = current_pr
-
-    return previous_pr
+    return probability_matrix.transpose()
 
 
 def adaptive_pagerank(probability_matrix, initial_pr):
-    transition_matrix = probability_matrix.transpose()
+    transition_matrix = probability_matrix
     initial_transition_matrix = deepcopy(transition_matrix)
     # Set up accuracy
     epsilon = 10 ** -3
     # Make delta greater than epsilon for first iteration
     delta = epsilon + 1
-    previous_pr = np.matrix(initial_pr)
+
+    previous_pr = initial_pr
     previous_pr_conv = np.matrix(np.zeros(len(previous_pr))).transpose()
 
     while delta > epsilon:
         # Calculate pagerank for non-converged entities
         current_pr_non_conv = transition_matrix.dot(previous_pr)
-        w = np.linalg.norm(previous_pr, ord=1) - np.linalg.norm(current_pr_non_conv, ord=1)
-        current_pr_non_conv = current_pr_non_conv + w * (1 / len(previous_pr))
-
         # Calculate pagerank for converged entities
-        current_pr_conv = previous_pr_conv
+        current_pr_conv = deepcopy(previous_pr_conv)
         # Join converged and non-converged parts
         current_pr = current_pr_non_conv + current_pr_conv
 
         for i in range(transition_matrix.shape[0]):
-            if abs(current_pr[i] - previous_pr[i]) / previous_pr[i] < epsilon:
+            if previous_pr[i] != 0 and abs(current_pr[i] - previous_pr[i]) / previous_pr[i] < epsilon:
                 transition_matrix[i] = np.zeros(transition_matrix.shape[1])
-                current_pr_conv[i] = current_pr[i]
-                current_pr[i] = 0
+                current_pr_conv[i] = deepcopy(current_pr[i])
+                current_pr_non_conv[i] = 0
 
         final_pr = initial_transition_matrix.dot(previous_pr)
-        w = np.linalg.norm(previous_pr, ord=1) - np.linalg.norm(final_pr, ord=1)
-        final_pr = final_pr + w * (1 / len(previous_pr))
 
-        print(delta)
         delta = np.linalg.norm(final_pr - previous_pr, ord=1)
 
-        previous_pr = current_pr
-        previous_pr_conv = current_pr_conv
+        previous_pr = deepcopy(current_pr)
+        previous_pr_conv = deepcopy(current_pr_conv)
 
     return previous_pr
 
 
 def launch():
+    super_small_sample = 'data/sample-super-small.txt'
     small_sample = 'data/sample-small.txt'
     large_sample = 'data/sample-large.txt'
     chosen_sample = small_sample
     weight_of_random_walk = 0.15
     probability_matrix = get_probability_matrix(get_graph_from_txt_data(chosen_sample), weight_of_random_walk)
-    initial_pr = np.full((len(probability_matrix), 1), 1 / len(probability_matrix))
-    probability_matrix = np.matrix(probability_matrix)
+    initial_pr = np.matrix([1 / probability_matrix.shape[0] for i in range(probability_matrix.shape[0])]).transpose()
 
-    result = adaptive_pagerank(probability_matrix, initial_pr)
-    result.sort()
-    print(len(result))
-    print(sum(result))
-    print(result)
+    result = adaptive_pagerank(probability_matrix, initial_pr).tolist()
+    flat_result = [item for sublist in result for item in sublist]
+    flat_result.sort()
+    print(flat_result)
+    print(len(flat_result))
+    print(sum(flat_result))
 
 
 launch()
